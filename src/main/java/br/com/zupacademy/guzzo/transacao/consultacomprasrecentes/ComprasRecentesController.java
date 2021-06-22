@@ -1,11 +1,10 @@
 package br.com.zupacademy.guzzo.transacao.consultacomprasrecentes;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,17 +20,12 @@ public class ComprasRecentesController {
 	private TransacaoRepository transacaoRepository;
 
 	@GetMapping("/transacoes/{id}/compras-recentes")
-	public ResponseEntity<?> retornaComprasRecentes(@PathVariable String id) {
+	public ResponseEntity<?> retornaComprasRecentes(@PathVariable String id,
+			@PageableDefault(page = 0, size = 10, direction = Direction.DESC, sort = "efetivadaEm") Pageable paginacao) {
 
-		PageRequest paginacao = PageRequest.of(0, 10, Sort.Direction.DESC, "efetivadaEm");
-		List<Transacao> transacoes = transacaoRepository.findAllByCartaoId(id, paginacao);
+		Page<Transacao> transacoes = transacaoRepository.findAllByCartaoId(id, paginacao);
 
-		List<TransacaoResponse> retorno = transacoes.stream().map(TransacaoResponse::new).collect(Collectors.toList());
-
-		if (retorno.isEmpty()) {
-			return ResponseEntity.notFound().build();
-		}
-
-		return ResponseEntity.ok().body(retorno);
+		return transacoes.isEmpty() ? ResponseEntity.notFound().build()
+				: ResponseEntity.ok().body(transacoes.map(TransacaoResponse::new).getContent());
 	}
 }
